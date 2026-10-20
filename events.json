@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-20T15:32:47.814Z",
+  "updatedAt": "2026-10-20T23:43:16.366Z",
   "events": [
     {
       "id": "mvgu7k4vh4rj",
@@ -92,12 +92,21 @@
       "memo": ""
     },
     {
-      "id": "mvguc2zgxasw20261114",
-      "title": "TeamDice練習",
+      "id": "mvhbw1ozmrk0",
+      "title": "Skycup",
       "date": "2026-11-14",
-      "start": 240,
-      "end": 360,
+      "start": 60,
+      "end": 300,
       "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mvhbwn8p0l9j",
+      "title": "外出予定",
+      "date": "2026-11-21",
+      "start": 0,
+      "end": 360,
+      "color": "slate",
       "memo": ""
     }
   ]
