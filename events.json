@@ -1,11 +1,101 @@
 {
-  "updatedAt": "2026-10-20T15:27:47.153Z",
+  "updatedAt": "2026-10-20T15:32:47.814Z",
   "events": [
     {
       "id": "mvgu7k4vh4rj",
       "title": "Sky練習",
       "date": "2026-10-21",
       "start": 210,
+      "end": 360,
+      "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mvgu8m303e4x",
+      "title": "Sky練習",
+      "date": "2026-10-22",
+      "start": 210,
+      "end": 360,
+      "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mvgubibicx6a",
+      "title": "TeamDice練習",
+      "date": "2026-10-24",
+      "start": 240,
+      "end": 360,
+      "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mvgudmd8vyh7",
+      "title": "韓国",
+      "date": "2026-10-25",
+      "start": 0,
+      "end": 300,
+      "color": "slate",
+      "memo": "もしかしたら早めに実家に着く可能性あり、相談可\nPC無し環境であればOK"
+    },
+    {
+      "id": "mvgudvx8dp1e20261026",
+      "title": "韓国",
+      "date": "2026-10-26",
+      "start": 0,
+      "end": 300,
+      "color": "slate",
+      "memo": "もしかしたら早めに実家に着く可能性あり、相談可\nPC無し環境であればOK"
+    },
+    {
+      "id": "mvguazppkc8v20261028",
+      "title": "Sky練習",
+      "date": "2026-10-28",
+      "start": 210,
+      "end": 360,
+      "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mvguazppxik120261029",
+      "title": "Sky練習",
+      "date": "2026-10-29",
+      "start": 210,
+      "end": 360,
+      "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mvguazppckpb20261030",
+      "title": "Sky練習",
+      "date": "2026-10-30",
+      "start": 210,
+      "end": 360,
+      "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mvguc2zgph1520261031",
+      "title": "TeamDice練習",
+      "date": "2026-10-31",
+      "start": 240,
+      "end": 360,
+      "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mvguc2zgqm6h20261107",
+      "title": "TeamDice練習",
+      "date": "2026-11-07",
+      "start": 240,
+      "end": 360,
+      "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mvguc2zgxasw20261114",
+      "title": "TeamDice練習",
+      "date": "2026-11-14",
+      "start": 240,
       "end": 360,
       "color": "indigo",
       "memo": ""
