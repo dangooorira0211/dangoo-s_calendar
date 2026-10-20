@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>夜の予定表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 1 week × 18:00–26:00 grid. Toolbar on top, time gutter left, 7 day columns. */
+:root {
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --fg: #1c2033;
+  --muted: #6a7088;
+  --line: #e1e4ee;
+  --line-soft: #eef0f6;
+  --accent: #3d4aa8;
+  --accent-soft: #e6e8f7;
+  --now: #d2493a;
+  --midnight: #c9cde0;
+  --ev-indigo: #4a57b8; --ev-indigo-bg: #e3e6f8;
+  --ev-teal: #1f8a7f;  --ev-teal-bg: #dcf1ee;
+  --ev-amber: #b0731a; --ev-amber-bg: #f8ead2;
+  --ev-rose: #b8456a;  --ev-rose-bg: #f7e0e8;
+  --ev-slate: #59607a; --ev-slate-bg: #e6e8ef;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --font-num: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --hour-h: 60px;
+  --gutter-w: 64px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12141f; --surface: #191c2a; --fg: #e6e8f2; --muted: #9298b2;
+    --line: #2a2e42; --line-soft: #212436; --accent: #9aa6f2; --accent-soft: #262b4a;
+    --now: #f07a6a; --midnight: #3a3f5c;
+    --ev-indigo: #aab3f7; --ev-indigo-bg: #2a3060;
+    --ev-teal: #7fd6cb;  --ev-teal-bg: #173d3a;
+    --ev-amber: #f0c27a; --ev-amber-bg: #433219;
+    --ev-rose: #f2a0bb;  --ev-rose-bg: #46222f;
+    --ev-slate: #c0c5da; --ev-slate-bg: #2e3245;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12141f; --surface: #191c2a; --fg: #e6e8f2; --muted: #9298b2;
+  --line: #2a2e42; --line-soft: #212436; --accent: #9aa6f2; --accent-soft: #262b4a;
+  --now: #f07a6a; --midnight: #3a3f5c;
+  --ev-indigo: #aab3f7; --ev-indigo-bg: #2a3060;
+  --ev-teal: #7fd6cb;  --ev-teal-bg: #173d3a;
+  --ev-amber: #f0c27a; --ev-amber-bg: #433219;
+  --ev-rose: #f2a0bb;  --ev-rose-bg: #46222f;
+  --ev-slate: #c0c5da; --ev-slate-bg: #2e3245;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 14px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 32px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+/* Header */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; justify-content: space-between; }
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.brand h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: .02em; text-wrap: balance; }
+.brand .range { font-family: var(--font-num); font-size: 12px; color: var(--muted); }
+.nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.month { font-size: 17px; font-weight: 700; margin-right: 6px; font-variant-numeric: tabular-nums; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
+  padding: 6px 12px; font-size: 13px; line-height: 1.4;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.icon { width: 34px; padding: 6px 0; text-align: center; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 700; }
+.btn.danger { color: var(--now); }
+.btn.danger.armed { background: var(--now); border-color: var(--now); color: var(--surface); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.chip .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chip.ro { background: var(--line-soft); color: var(--muted); }
+
+/* Calendar */
+.cal-scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.cal { min-width: 720px; display: grid; grid-template-columns: var(--gutter-w) repeat(7, minmax(0, 1fr)); }
+.dayhead {
+  position: sticky; top: 0; z-index: 3; background: var(--surface);
+  border-bottom: 1px solid var(--line); padding: 10px 4px 8px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.dayhead .dow { font-size: 11.5px; color: var(--muted); letter-spacing: .08em; }
+.dayhead .num {
+  font-family: var(--font-num); font-size: 20px; font-weight: 600; width: 38px; height: 38px;
+  display: grid; place-items: center; border-radius: 50%; font-variant-numeric: tabular-nums;
+}
+.dayhead.sun .dow { color: var(--ev-rose); }
+.dayhead.sat .dow { color: var(--ev-indigo); }
+.dayhead.today .num { background: var(--accent); color: var(--surface); }
+.dayhead.today .dow { color: var(--accent); font-weight: 700; }
+.corner { border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 0; z-index: 3; }
+
+.gutter { position: relative; height: calc(var(--hour-h) * 8); }
+.gutter .t {
+  position: absolute; right: 8px; transform: translateY(-50%);
+  font-family: var(--font-num); font-size: 11px; color: var(--muted); text-align: right; line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.gutter .t small { display: block; font-family: var(--font-body); font-size: 9.5px; opacity: .8; }
+.gutter .t:first-child { transform: translateY(2px); }
+
+.col {
+  position: relative; height: calc(var(--hour-h) * 8); border-left: 1px solid var(--line);
+  background-image:
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hour-h) - 1px), var(--line) calc(var(--hour-h) - 1px), var(--line) var(--hour-h)),
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hour-h) / 2 - 1px), var(--line-soft) calc(var(--hour-h) / 2 - 1px), var(--line-soft) calc(var(--hour-h) / 2), transparent calc(var(--hour-h) / 2), transparent var(--hour-h));
+}
+.col.editable { cursor: cell; }
+.col.today { background-color: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+.midline { position: absolute; left: 0; right: 0; top: calc(var(--hour-h) * 6 - 1px); height: 2px; background: var(--midnight); pointer-events: none; }
+
+.ev {
+  position: absolute; border-radius: 6px; padding: 4px 6px; overflow: hidden;
+  border-left: 3px solid var(--c); background: var(--cb); color: var(--fg);
+  text-align: left; border-top: 0; border-right: 0; border-bottom: 0;
+  font-size: 12px; line-height: 1.3; display: flex; flex-direction: column; gap: 1px; z-index: 1;
+}
+.ev:hover { filter: brightness(0.97); z-index: 2; }
+.ev .ti { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev .tm { font-family: var(--font-num); font-size: 10.5px; color: var(--c); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ev.short { flex-direction: row; align-items: center; gap: 6px; padding-block: 1px; }
+
+.nowline { position: absolute; left: -1px; right: 0; height: 2px; background: var(--now); z-index: 2; pointer-events: none; }
+.nowline::before { content: ""; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--now); }
+
+.empty { font-size: 13px; color: var(--muted); padding: 10px 14px; border: 1px dashed var(--line); border-radius: 10px; background: var(--surface); }
+
+/* Dialog */
+.backdrop { position: fixed; inset: 0; background: rgba(15, 18, 32, .45); z-index: 20; display: grid; place-items: center; padding: 16px; }
+.dialog {
+  width: min(440px, 100%); background: var(--surface); color: var(--fg); border-radius: 14px;
+  border: 1px solid var(--line); box-shadow: 0 20px 50px rgba(10, 12, 30, .3);
+  padding: 20px; display: flex; flex-direction: column; gap: 14px; max-height: calc(100% - 32px); overflow: auto;
+}
+.dialog h2 { margin: 0; font-size: 16px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label, .lbl { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > .field { flex: 1 1 120px; min-width: 0; }
+input, select, textarea {
+  font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; width: 100%;
+}
+textarea { resize: vertical; min-height: 60px; }
+select, input[type="date"] { font-family: var(--font-num); font-size: 13px; }
+.swatches { display: flex; gap: 8px; }
+.sw { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; background: var(--cb); position: relative; }
+.sw::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--c); }
+.sw[aria-pressed="true"] { border-color: var(--c); }
+.actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.actions .spacer { flex: 1; }
+.err { color: var(--now); font-size: 12.5px; min-height: 1em; }
+.detail-time { font-family: var(--font-num); color: var(--muted); font-size: 13px; }
+.detail-memo { white-space: pre-wrap; margin: 0; }
+
+.pending {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  padding: 10px 14px; border-radius: 10px; background: var(--ev-amber-bg); color: var(--fg); font-size: 13px;
+}
+.pending b { color: var(--ev-amber); }
+.pending .grow { flex: 1 1 240px; min-width: 0; }
+.foot { font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-size: 13px; z-index: 30;
+}
+@media (max-width: 520px) {
+  .brand h1 { font-size: 18px; }
+  :root { --gutter-w: 54px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ev { transition: filter .12s; }
+  .dialog { animation: pop .14s ease-out; }
+  @keyframes pop { from { transform: translateY(6px); opacity: .6; } to { transform: none; opacity: 1; } }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>夜の予定表</h1>
+      <span class="range">18:00 – 26:00</span>
+    </div>
+    <div class="nav">
+      <span class="month" id="month"></span>
+      <button class="btn icon" id="prev" aria-label="前の週">‹</button>
+      <button class="btn" id="today">今日</button>
+      <button class="btn icon" id="next" aria-label="次の週">›</button>
+      <button class="btn primary" id="add" hidden>＋ 予定を追加</button>
+    </div>
+  </header>
+  <div class="status">
+    <span class="chip ro" id="mode"><span class="dot"></span><span id="modeText">読み込み中</span></span>
+    <span id="hint"></span>
+  </div>
+  <div class="pending" id="pending" hidden>
+    <span class="grow"><b>まだ公開されていない変更があります。</b>「events.json を保存」で書き出したファイルを、GitHub のリポジトリにある events.json と差し替えると、見ている人にも反映されます。</span>
+    <button class="btn" id="copyJson">JSONをコピー</button>
+    <button class="btn primary" id="dlJson">events.json を保存</button>
+    <button class="btn danger" id="discard">変更を破棄</button>
+  </div>
+  <div class="empty" id="empty" hidden></div>
+  <div class="cal-scroll">
+    <div class="cal" id="cal"></div>
+  </div>
+  <div class="foot"><span id="updated"></span></div>
+</div>
+
+<div class="backdrop" id="backdrop" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle" id="dialog"></div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  const START = 18, HOURS = 8, SPAN = HOURS * 60; // minutes from 18:00
+  const DOW = ["日", "月", "火", "水", "木", "金", "土"];
+  const COLORS = ["indigo", "teal", "amber", "rose", "slate"];
+  const COLOR_NAMES = { indigo: "藍", teal: "青緑", amber: "山吹", rose: "薄紅", slate: "鼠" };
+  const $ = (id) => document.getElementById(id);
+
+  // 閲覧用URL: そのまま / 編集用URL: 末尾に ?edit を付ける
+  const canWrite = new URLSearchParams(location.search).has("edit");
+  const DRAFT_KEY = "yoru-calendar-draft";
+  let loaded = false;
+  let published = [];    // events.json の内容
+  let events = [];       // 表示中（編集モードでは下書きを含む） {id, title, date, start, end, color, memo}
+  const store = {
+    get() { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch { return null; } },
+    set(v) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(v)); } catch {} },
+    clear() { try { localStorage.removeItem(DRAFT_KEY); } catch {} },
+  };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  let weekStart = null;  // Date (Sunday)
+
+  // ---- date helpers (dates are the "evening's" calendar day; 25:00 = next day 1:00) ----
+  const pad = (n) => String(n).padStart(2, "0");
+  const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  // Before 6am counts as the previous evening (e.g. 0:30 → 24:30 of yesterday)
+  function eveningNow() {
+    const now = new Date();
+    let mins = now.getHours() * 60 + now.getMinutes();
+    let day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (now.getHours() < 6) { day = addDays(day, -1); mins += 24 * 60; }
+    return { day, offset: mins - START * 60 };
+  }
+  const sundayOf = (d) => addDays(new Date(d.getFullYear(), d.getMonth(), d.getDate()), -d.getDay());
+  const fmtT = (off) => { const m = START * 60 + off; return `${Math.floor(m / 60)}:${pad(m % 60)}`; };
+  function fmtTReal(off) { const m = START * 60 + off; const h = Math.floor(m / 60); return h >= 24 ? `（翌${h - 24}:${pad(m % 60)}）` : ""; }
+
+  // ---- render ----
+  function render() {
+    const cal = $("cal");
+    cal.textContent = "";
+    const days = [...Array(7)].map((_, i) => addDays(weekStart, i));
+    const { day: eDay, offset: nowOff } = eveningNow();
+    const todayKey = ymd(eDay);
+
+    const first = days[0], last = days[6];
+    $("month").textContent = first.getMonth() === last.getMonth()
+      ? `${first.getFullYear()}年${first.getMonth() + 1}月`
+      : `${first.getFullYear()}年${first.getMonth() + 1}月 – ${last.getMonth() + 1}月`;
+
+    const corner = document.createElement("div"); corner.className = "corner"; cal.append(corner);
+    days.forEach((d) => {
+      const h = document.createElement("div");
+      h.className = "dayhead" + (d.getDay() === 0 ? " sun" : d.getDay() === 6 ? " sat" : "") + (ymd(d) === todayKey ? " today" : "");
+      h.innerHTML = `<span class="dow"></span><span class="num"></span>`;
+      h.querySelector(".dow").textContent = DOW[d.getDay()];
+      h.querySelector(".num").textContent = d.getDate();
+      cal.append(h);
+    });
+
+    const gutter = document.createElement("div"); gutter.className = "gutter";
+    for (let i = 0; i <= HOURS; i++) {
+      if (i === HOURS) break;
+      const t = document.createElement("div"); t.className = "t";
+      t.style.top = `calc(var(--hour-h) * ${i})`;
+      const hr = START + i;
+      t.textContent = `${hr}:00`;
+      if (hr >= 24) { const s = document.createElement("small"); s.textContent = `翌${hr - 24}時`; t.append(s); }
+      gutter.append(t);
+    }
+    cal.append(gutter);
+
+    days.forEach((d) => {
+      const key = ymd(d);
+      const col = document.createElement("div");
+      col.className = "col" + (key === todayKey ? " today" : "") + (canWrite ? " editable" : "");
+      col.dataset.date = key;
+      const mid = document.createElement("div"); mid.className = "midline"; col.append(mid);
+
+      const list = events.filter((e) => e.date === key).sort((a, b) => a.start - b.start || b.end - a.end);
+      layout(list).forEach(({ ev, lane, lanes }) => col.append(eventEl(ev, lane, lanes)));
+
+      if (key === todayKey && nowOff >= 0 && nowOff <= SPAN) {
+        const n = document.createElement("div"); n.className = "nowline";
+        n.style.top = `calc(var(--hour-h) * ${nowOff / 60})`; col.append(n);
+      }
+      if (canWrite) col.addEventListener("click", (e) => {
+        if (e.target !== col) return;
+        const rect = col.getBoundingClientRect();
+        const off = Math.floor(((e.clientY - rect.top) / rect.height) * SPAN / 30) * 30;
+        openEditor({ date: key, start: Math.max(0, Math.min(SPAN - 30, off)), end: Math.min(SPAN, off + 60) });
+      });
+      cal.append(col);
+    });
+
+    const weekKeys = new Set(days.map(ymd));
+    const hasAny = events.some((e) => weekKeys.has(e.date));
+    const empty = $("empty");
+    $("pending").hidden = !(canWrite && store.get());
+    if (!hasAny && loaded) {
+      empty.hidden = false;
+      empty.textContent = canWrite
+        ? "この週の予定はまだありません。空いている時間をクリックするか「予定を追加」から登録してください。"
+        : "この週の予定はまだ入っていません。";
+    } else empty.hidden = true;
+  }
+
+  // Split overlapping events into side-by-side lanes
+  function layout(list) {
+    const out = []; let group = [], groupEnd = -1;
+    const flush = () => {
+      const lanesEnd = [];
+      const placed = group.map((ev) => {
+        let lane = lanesEnd.findIndex((end) => end <= ev.start);
+        if (lane === -1) { lane = lanesEnd.length; lanesEnd.push(ev.end); } else lanesEnd[lane] = ev.end;
+        return { ev, lane };
+      });
+      placed.forEach((p) => out.push({ ...p, lanes: lanesEnd.length }));
+      group = []; groupEnd = -1;
+    };
+    list.forEach((ev) => { if (group.length && ev.start >= groupEnd) flush(); group.push(ev); groupEnd = Math.max(groupEnd, ev.end); });
+    if (group.length) flush();
+    return out;
+  }
+
+  function eventEl(ev, lane, lanes) {
+    const b = document.createElement("button");
+    const dur = ev.end - ev.start;
+    b.className = "ev" + (dur <= 30 ? " short" : "");
+    const c = COLORS.includes(ev.color) ? ev.color : "indigo";
+    b.style.setProperty("--c", `var(--ev-${c})`);
+    b.style.setProperty("--cb", `var(--ev-${c}-bg)`);
+    b.style.top = `calc(var(--hour-h) * ${ev.start / 60} + 1px)`;
+    b.style.height = `calc(var(--hour-h) * ${dur / 60} - 2px)`;
+    b.style.left = `calc(${(lane / lanes) * 100}% + 2px)`;
+    b.style.width = `calc(${100 / lanes}% - 4px)`;
+    const ti = document.createElement("span"); ti.className = "ti"; ti.textContent = ev.title || "（無題）";
+    const tm = document.createElement("span"); tm.className = "tm"; tm.textContent = `${fmtT(ev.start)}–${fmtT(ev.end)}`;
+    b.append(ti, tm);
+    b.setAttribute("aria-label", `${ev.title} ${fmtT(ev.start)}から${fmtT(ev.end)}`);
+    b.addEventListener("click", (e) => { e.stopPropagation(); canWrite ? openEditor(ev) : openDetail(ev); });
+    return b;
+  }
+
+  // ---- dialogs ----
+  function timeOptions(sel, from, to, value) {
+    sel.textContent = "";
+    for (let m = from; m <= to; m += 15) {
+      const o = document.createElement("option"); o.value = m;
+      o.textContent = fmtT(m) + (START * 60 + m >= 24 * 60 ? `  翌${pad(Math.floor((START * 60 + m) / 60) - 24)}:${pad((START * 60 + m) % 60)}` : "");
+      if (m === value) o.selected = true;
+      sel.append(o);
+    }
+  }
+  function closeDialog() { $("backdrop").hidden = true; $("dialog").textContent = ""; }
+  $("backdrop").addEventListener("click", (e) => { if (e.target === $("backdrop")) closeDialog(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("backdrop").hidden) closeDialog(); });
+
+  function openDetail(ev) {
+    const d = $("dialog");
+    d.innerHTML = `<h2 id="dlgTitle"></h2><div class="detail-time"></div><p class="detail-memo"></p><div class="actions"><button class="btn" id="dClose">閉じる</button></div>`;
+    d.querySelector("h2").textContent = ev.title || "（無題）";
+    const dt = new Date(ev.date + "T00:00");
+    d.querySelector(".detail-time").textContent = `${dt.getMonth() + 1}月${dt.getDate()}日（${DOW[dt.getDay()]}） ${fmtT(ev.start)}–${fmtT(ev.end)} ${fmtTReal(ev.end)}`;
+    const memo = d.querySelector(".detail-memo");
+    if (ev.memo) memo.textContent = ev.memo; else memo.remove();
+    $("backdrop").hidden = false;
+    $("dClose").addEventListener("click", closeDialog);
+    $("dClose").focus();
+  }
+
+  function openEditor(ev) {
+    const isNew = !ev.id;
+    let color = ev.color || "indigo";
+    const d = $("dialog");
+    d.innerHTML = `
+      <h2 id="dlgTitle">${isNew ? "予定を追加" : "予定を編集"}</h2>
+      <div class="field"><label for="fTitle">タイトル</label><input id="fTitle" maxlength="60" placeholder="例：バイト、ゲーム配信"></div>
+      <div class="field"><label for="fDate">日付（夕方の日付）</label><input id="fDate" type="date"></div>
+      <div class="row">
+        <div class="field"><label for="fStart">開始</label><select id="fStart"></select></div>
+        <div class="field"><label for="fEnd">終了</label><select id="fEnd"></select></div>
+      </div>
+      <div class="field"><span class="lbl">色</span><div class="swatches" id="fColors"></div></div>
+      <div class="field"><label for="fMemo">メモ（任意）</label><textarea id="fMemo" maxlength="500"></textarea></div>
+      <div class="err" id="fErr"></div>
+      <div class="actions">
+        ${isNew ? "" : '<button class="btn danger" id="fDel">削除</button>'}
+        <span class="spacer"></span>
+        <button class="btn" id="fCancel">キャンセル</button>
+        <button class="btn primary" id="fSave">保存</button>
+      </div>`;
+    $("fTitle").value = ev.title || "";
+    $("fDate").value = ev.date || ymd(eveningNow().day);
+    $("fMemo").value = ev.memo || "";
+    timeOptions($("fStart"), 0, SPAN - 15, ev.start ?? 60);
+    timeOptions($("fEnd"), 15, SPAN, ev.end ?? 120);
+    const sw = $("fColors");
+    COLORS.forEach((c) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "sw";
+      b.style.setProperty("--c", `var(--ev-${c})`); b.style.setProperty("--cb", `var(--ev-${c}-bg)`);
+      b.setAttribute("aria-label", COLOR_NAMES[c]); b.setAttribute("aria-pressed", String(c === color));
+      b.addEventListener("click", () => { color = c; sw.querySelectorAll(".sw").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); });
+      sw.append(b);
+    });
+    $("fStart").addEventListener("change", () => {
+      const s = +$("fStart").value, e = +$("fEnd").value;
+      if (e <= s) $("fEnd").value = Math.min(SPAN, s + 60);
+    });
+    $("fCancel").addEventListener("click", closeDialog);
+    $("fSave").addEventListener("click", async () => {
+      const title = $("fTitle").value.trim();
+      const start = +$("fStart").value, end = +$("fEnd").value, date = $("fDate").value;
+      const err = $("fErr");
+      if (!title) { err.textContent = "タイトルを入力してください。"; $("fTitle").focus(); return; }
+      if (!date) { err.textContent = "日付を選んでください。"; return; }
+      if (end <= start) { err.textContent = "終了は開始より後の時刻にしてください。"; return; }
+      const body = { title, date, start, end, color, memo: $("fMemo").value.trim(), updatedAt: new Date().toISOString() };
+      delete body.updatedAt;
+      const next = isNew ? [...events, { id: uid(), ...body }] : events.map((x) => (x.id === ev.id ? { id: ev.id, ...body } : x));
+      commit(next);
+      closeDialog(); toast(isNew ? "予定を追加しました（未公開）" : "予定を更新しました（未公開）");
+    });
+    const del = $("fDel");
+    if (del) {
+      let armed = false;
+      del.addEventListener("click", async () => {
+        if (!armed) { armed = true; del.classList.add("armed"); del.textContent = "本当に削除"; return; }
+        commit(events.filter((x) => x.id !== ev.id));
+        closeDialog(); toast("予定を削除しました（未公開）");
+      });
+    }
+    $("backdrop").hidden = false;
+    $("fTitle").focus();
+  }
+
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $("toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), 2200);
+  }
+
+  // ---- navigation ----
+  $("prev").addEventListener("click", () => { weekStart = addDays(weekStart, -7); render(); });
+  $("next").addEventListener("click", () => { weekStart = addDays(weekStart, 7); render(); });
+  $("today").addEventListener("click", () => { weekStart = sundayOf(eveningNow().day); render(); });
+  $("add").addEventListener("click", () => openEditor({ date: ymd(eveningNow().day), start: 60, end: 120 }));
+
+  function setMode(text, writable) {
+    $("modeText").textContent = text;
+    $("mode").classList.toggle("ro", !writable);
+    $("add").hidden = !writable;
+    $("hint").textContent = writable ? "空いている時間をクリックで追加・予定をクリックで編集" : "予定をクリックすると詳細が見られます";
+  }
+
+  weekStart = sundayOf(eveningNow().day);
+  render();
+  setInterval(render, 60 * 1000); // keep the "now" line current
+
+  // ---- data (events.json in the repository) ----
+  const clean = (list) => (Array.isArray(list) ? list : [])
+    .filter((e) => e && typeof e.start === "number" && typeof e.end === "number" && e.date)
+    .map((e) => ({ id: String(e.id || uid()), title: String(e.title || ""), date: e.date, start: e.start, end: e.end, color: e.color || "indigo", memo: String(e.memo || "") }));
+
+  function exportJson() {
+    const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start);
+    return JSON.stringify({ updatedAt: new Date().toISOString(), events: sorted }, null, 2) + "\n";
+  }
+  function commit(next) {
+    events = next;
+    store.set(events);
+    render();
+  }
+  $("dlJson").addEventListener("click", () => {
+    const blob = new Blob([exportJson()], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "events.json";
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast("events.json を保存しました。GitHub で差し替えてください");
+  });
+  $("copyJson").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(exportJson()); toast("JSONをコピーしました"); }
+    catch { toast("コピーできませんでした。「events.json を保存」を使ってください"); }
+  });
+  $("discard").addEventListener("click", () => {
+    if ($("discard").dataset.armed !== "1") {
+      $("discard").dataset.armed = "1"; $("discard").classList.add("armed"); $("discard").textContent = "本当に破棄";
+      return;
+    }
+    $("discard").dataset.armed = ""; $("discard").classList.remove("armed"); $("discard").textContent = "変更を破棄";
+    store.clear(); events = published; render(); toast("公開中の内容に戻しました");
+  });
+
+  setMode(canWrite ? "編集モード" : "閲覧のみ", canWrite);
+  (async () => {
+    try {
+      const res = await fetch("events.json?t=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error(res.status);
+      const json = await res.json();
+      published = clean(Array.isArray(json) ? json : json.events);
+      if (json.updatedAt) {
+        const u = new Date(json.updatedAt);
+        $("updated").textContent = `最終更新 ${u.getFullYear()}/${u.getMonth() + 1}/${u.getDate()} ${u.getHours()}:${pad(u.getMinutes())}`;
+      }
+    } catch {
+      $("updated").textContent = "events.json を読み込めませんでした。リポジトリに events.json があるか確認してください。";
+    }
+    const draft = canWrite ? store.get() : null;
+    events = draft ? clean(draft) : published;
+    loaded = true;
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
