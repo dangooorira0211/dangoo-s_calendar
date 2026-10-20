@@ -169,6 +169,21 @@ select, input[type="date"] { font-family: var(--font-num); font-size: 13px; }
 .sw[aria-pressed="true"] { border-color: var(--c); }
 .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .actions .spacer { flex: 1; }
+.copy { border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.copy summary { cursor: pointer; padding: 9px 12px; font-size: 13px; font-weight: 500; color: var(--accent); }
+.copy[open] summary { border-bottom: 1px solid var(--line); }
+.copy-body { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.addrow { display: flex; gap: 8px; }
+.addrow input { flex: 1; min-width: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips:empty { display: none; }
+.chip-d {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent); font-family: var(--font-num); font-size: 12px;
+}
+.chip-d button { border: 0; background: transparent; color: inherit; width: 22px; height: 22px; border-radius: 50%; font-size: 13px; line-height: 1; }
+.chip-d button:hover { background: var(--surface); }
+.copy-info { font-size: 12px; color: var(--muted); line-height: 1.6; }
 .err { color: var(--now); font-size: 12.5px; min-height: 1em; }
 .detail-time { font-family: var(--font-num); color: var(--muted); font-size: 13px; }
 .detail-memo { white-space: pre-wrap; margin: 0; }
@@ -419,6 +434,16 @@ select, input[type="date"] { font-family: var(--font-num); font-size: 13px; }
       </div>
       <div class="field"><span class="lbl">色</span><div class="swatches" id="fColors"></div></div>
       <div class="field"><label for="fMemo">メモ（任意）</label><textarea id="fMemo" maxlength="500"></textarea></div>
+      <details class="copy" id="fCopy">
+        <summary>他の日にもコピー</summary>
+        <div class="copy-body">
+          <div class="field"><label for="fCopyDate">コピー先の日付</label>
+            <div class="addrow"><input id="fCopyDate" type="date"><button type="button" class="btn" id="fCopyAdd">追加</button></div>
+          </div>
+          <div class="chips" id="fCopyList"></div>
+          <div class="copy-info" id="fCopyInfo"></div>
+        </div>
+      </details>
       <div class="err" id="fErr"></div>
       <div class="actions">
         ${isNew ? "" : '<button class="btn danger" id="fDel">削除</button>'}
@@ -443,6 +468,32 @@ select, input[type="date"] { font-family: var(--font-num); font-size: 13px; }
       const s = +$("fStart").value, e = +$("fEnd").value;
       if (e <= s) $("fEnd").value = Math.min(SPAN, s + 60);
     });
+    // ---- copy to other days ----
+    const copyDates = new Set();
+    const fmtD = (s) => { const x = new Date(s + "T00:00"); return `${x.getMonth() + 1}/${x.getDate()}(${DOW[x.getDay()]})`; };
+    const copyTargets = () => [...copyDates].filter((dt) => dt !== $("fDate").value).sort();
+    function renderCopyList() {
+      const list = $("fCopyList"); list.textContent = "";
+      [...copyDates].sort().forEach((dt) => {
+        const c = document.createElement("span"); c.className = "chip-d";
+        c.textContent = fmtD(dt);
+        const x = document.createElement("button"); x.type = "button"; x.textContent = "×";
+        x.setAttribute("aria-label", `${fmtD(dt)} を外す`);
+        x.addEventListener("click", () => { copyDates.delete(dt); renderCopyList(); });
+        c.append(x); list.append(c);
+      });
+      const n = copyTargets().length;
+      $("fCopyInfo").textContent = n ? `保存すると${n}日分コピーされます。` : "日付を選んで「追加」を押すと、その日にも同じ予定を作ります。";
+    }
+    $("fCopyAdd").addEventListener("click", () => {
+      const v = $("fCopyDate").value;
+      if (!v) { $("fCopyDate").focus(); return; }
+      if (v === $("fDate").value) { $("fCopyInfo").textContent = "元の予定と同じ日付です。別の日付を選んでください。"; return; }
+      copyDates.add(v); renderCopyList();
+    });
+    $("fDate").addEventListener("change", renderCopyList);
+    renderCopyList();
+
     $("fCancel").addEventListener("click", closeDialog);
     $("fSave").addEventListener("click", async () => {
       const title = $("fTitle").value.trim();
@@ -453,9 +504,16 @@ select, input[type="date"] { font-family: var(--font-num); font-size: 13px; }
       if (end <= start) { err.textContent = "終了は開始より後の時刻にしてください。"; return; }
       const body = { title, date, start, end, color, memo: $("fMemo").value.trim(), updatedAt: new Date().toISOString() };
       delete body.updatedAt;
-      const next = isNew ? [...events, { id: uid(), ...body }] : events.map((x) => (x.id === ev.id ? { id: ev.id, ...body } : x));
+      let next = isNew ? [...events, { id: uid(), ...body }] : events.map((x) => (x.id === ev.id ? { id: ev.id, ...body } : x));
+      // 同じ日・同じ時間・同じタイトルの予定がすでにある日はコピーしない
+      const same = (x, dt) => x.date === dt && x.start === start && x.end === end && x.title === title;
+      const copies = copyTargets().filter((dt) => !next.some((x) => same(x, dt)))
+        .map((dt) => ({ id: uid() + dt.replace(/-/g, ""), ...body, date: dt }));
+      next = next.concat(copies);
       commit(next);
-      closeDialog(); toast(isNew ? "予定を追加しました（未公開）" : "予定を更新しました（未公開）");
+      closeDialog();
+      const base = isNew ? "予定を追加しました" : "予定を更新しました";
+      toast(copies.length ? `${base}・${copies.length}日にコピー（未公開）` : `${base}（未公開）`);
     });
     const del = $("fDel");
     if (del) {
