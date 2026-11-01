@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-20T23:43:16.366Z",
+  "updatedAt": "2026-11-01T08:26:32.815Z",
   "events": [
     {
       "id": "mvgu7k4vh4rj",
@@ -83,9 +83,36 @@
       "memo": ""
     },
     {
-      "id": "mvguc2zgqm6h20261107",
-      "title": "TeamDice練習",
+      "id": "mvxke58zqkcv",
+      "title": "sky練習",
+      "date": "2026-11-01",
+      "start": 240,
+      "end": 360,
+      "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mvxkenzppln220261103",
+      "title": "sky練習",
+      "date": "2026-11-03",
+      "start": 240,
+      "end": 360,
+      "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mvxkenzp0dqi20261107",
+      "title": "sky練習",
       "date": "2026-11-07",
+      "start": 240,
+      "end": 360,
+      "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mvxkenzpbvdm20261108",
+      "title": "sky練習",
+      "date": "2026-11-08",
       "start": 240,
       "end": 360,
       "color": "indigo",
