@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-01T08:43:49.747Z",
+  "updatedAt": "2026-11-05T03:12:56.887Z",
   "events": [
     {
       "id": "mvgu7k4vh4rj",
@@ -122,6 +122,15 @@
       "id": "mvxkenzpbvdm20261108",
       "title": "sky練習",
       "date": "2026-11-08",
+      "start": 240,
+      "end": 360,
+      "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mw2z04lvoixl20261112",
+      "title": "sky練習",
+      "date": "2026-11-12",
       "start": 240,
       "end": 360,
       "color": "indigo",
