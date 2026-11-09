@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-05T03:12:56.887Z",
+  "updatedAt": "2026-11-09T06:37:08.195Z",
   "events": [
     {
       "id": "mvgu7k4vh4rj",
@@ -152,6 +152,15 @@
       "start": 0,
       "end": 360,
       "color": "slate",
+      "memo": ""
+    },
+    {
+      "id": "mw8w0d5i46zr20261128",
+      "title": "TeamDice練習",
+      "date": "2026-11-28",
+      "start": 240,
+      "end": 360,
+      "color": "indigo",
       "memo": ""
     }
   ]
