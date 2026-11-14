@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-09T06:37:08.195Z",
+  "updatedAt": "2026-11-14T05:45:28.658Z",
   "events": [
     {
       "id": "mvgu7k4vh4rj",
@@ -141,7 +141,16 @@
       "title": "Skycup",
       "date": "2026-11-14",
       "start": 60,
-      "end": 300,
+      "end": 360,
+      "color": "indigo",
+      "memo": ""
+    },
+    {
+      "id": "mwfze7fzz39f",
+      "title": "助っ人",
+      "date": "2026-11-15",
+      "start": 240,
+      "end": 360,
       "color": "indigo",
       "memo": ""
     },
